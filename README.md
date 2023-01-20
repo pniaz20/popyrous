@@ -104,6 +104,13 @@ Some metrics used for time-series classification, etc.
 
 - `tsc_metrics`: Time-series classification metrics, including accuracy, f1 score, concurrency (transitioning on time) and consistency (not changing prediction in consistent non-transitioning portions of the data)
 
+#### 2-3-6- cwt
+
+Continmuous Wavelet Transform
+
+- `calculate_wavelet_dataset`: gets a dataset, e.g., a pytorch dataset, or simply a numpy array, of sequences, and calculates CWT on each sequence.
+- `calculate_wavelet_vector`: gets a vector as a time series sequence (multiple features) and calculates its CWT
+
 ### 2-4- web
 
 This submodule contains some web-related functions for downloading files from the internet or Google Drive, storing them, reading their contents, etc.

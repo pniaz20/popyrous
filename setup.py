@@ -6,7 +6,7 @@ here = pathlib.Path(__file__).parent.resolve()
 # Get the long description from the README file
 long_description = (here / "README.md").read_text(encoding="utf-8")
 
-VERSION = '0.0.0' 
+VERSION = '0.0.1' 
 DESCRIPTION = "Pouya's Python routines. A collection of useful Python routines for everyday and professional life."
 
 # Setting up
@@ -26,7 +26,7 @@ setup(
         python_requires=">=3.7, <4",
         license='MIT',
         install_requires=[
-            'numpy','scipy','pandas','matplotlib','scikit-learn','gdown'
+            'numpy','scipy','pandas','matplotlib','scikit-learn','gdown','pywavelets'
         ],
         keywords=['python', 'routines', 'matlab', 'zipfile', 'packages', 'time series', 'filtering', 'download', 'web'],
         classifiers= [
