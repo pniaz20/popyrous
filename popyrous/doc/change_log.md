@@ -26,3 +26,8 @@ Added `popyrous.timeseries.experiments.generate_cell_array` and edited the READM
 #### 0.0.4
 
 - Corrected `popyrous.timeseries.datasets.make_unsqueezed_dataset` such that it no longer tried to input `in_features` and `out_features` to `TabularDataset`.
+
+#### 0.0.5
+
+- Created `popyrous.ml.confusion_matrix.py` for pretty plotting confusion matrix.
+- Edited ERADME to give credit to the creator.

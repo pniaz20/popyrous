@@ -1,4 +1,4 @@
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 
 _POPYROUS_IMPORT_EVERYTHING_ELSE_ = True
 
@@ -9,3 +9,4 @@ if _POPYROUS_IMPORT_EVERYTHING_ELSE_:
     from . zipfiles import *
     from . timeseries import *
     from . utils import *
+    from . ml import *

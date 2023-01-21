@@ -6,7 +6,7 @@ here = pathlib.Path(__file__).parent.resolve()
 # Get the long description from the README file
 long_description = (here / "README.md").read_text(encoding="utf-8")
 
-VERSION = '0.0.4' 
+VERSION = '0.0.5' 
 DESCRIPTION = "Pouya's Python routines. A collection of useful Python routines for everyday and professional life."
 
 # Setting up

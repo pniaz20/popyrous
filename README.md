@@ -3,8 +3,8 @@
 (Pouya's Python Routines) A collection of useful Python routines for science, research, development, and everyday life.
 
 Author: Pouya P. Niaz (<pniaz20@ku.edu.tr> , <pouya.p.niaz@gmail.com>)  
-Version: 0.0.0  
-Last Update: 20 Jan, 2023
+Version: 0.0.5  
+Last Update: 21 Jan, 2023
 
 This is a collection of Python routines for the following purposes:
 
@@ -128,6 +128,12 @@ This submodule contains some functions for compressing/decompressing zip files.
 - `extract_files(fileName)`: Extracts everything in the zip file.
 - `compress_files(file_name, **kwargs)`: Compresses files into a zip file. Options for compression method, etc. are provided.
 
+### 2-6- ml
+
+This submodule contains some machine-learning-related code. For now, it just contains a function for pretty plotting confusion matrices (see credits).
+
+- `make_confusion_matrix` gets a confusion matrix and some parameters, and pretty plots it.
+
 -------------------------------------------------------------
 
 ## 3- License
@@ -135,3 +141,10 @@ This submodule contains some functions for compressing/decompressing zip files.
 This package is built with MIT license.
 
 -------------------------------------------------------------
+
+## 4- Credits
+
+Pretty plotting confusion matrix:  
+Dennis T  
+<https://github.com/DTrimarchi10/confusion_matrix>  
+<https://medium.com/@dtuk81/confusion-matrix-visualization-fc31e3f30fea>
