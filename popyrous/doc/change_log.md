@@ -31,3 +31,7 @@ Added `popyrous.timeseries.experiments.generate_cell_array` and edited the READM
 
 - Created `popyrous.ml.confusion_matrix.py` for pretty plotting confusion matrix.
 - Edited ERADME to give credit to the creator.
+
+#### 0.0.6
+
+- Added `seaborn` to package dependencies due to the previous update.
