@@ -11,8 +11,6 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 
 class TabularDataset:
-    DTYPE = np.float32
-    POWERS_OF_TWO = True
     def __init__(self, 
         input_vec, in_seq_length:int, in_squeezed:bool,
         output_vec=None, out_seq_length:int=1, out_squeezed:bool=True,
@@ -21,7 +19,8 @@ class TabularDataset:
         input_forward_facing:bool=True, output_forward_facing:bool=True,
         input_include_current_timestep:bool=True, output_include_current_timestep:bool=True,
         input_towards_future:bool=False, output_towards_future:bool=True,
-        stacked=True, extern_input_scaler=None, extern_output_scaler=None, scaling:str='standard', verbose=True):
+        stacked=True, extern_input_scaler=None, extern_output_scaler=None, scaling:str='standard', 
+        dtype=np.float32, powers_of_two:bool=True, verbose=True):
         """Generate 3D-tabulated dataset using sliding window from multi-variate timeseries data to be used later in 
         timeseries classification,. regression, deep learning, PyTorch dataloaders, etc.
 
@@ -69,6 +68,11 @@ class TabularDataset:
         :param `extern_output_scaler` (sklearn scaler): If not None, this scaler will be used to scale the outputs.
                                                         Default is None.
         :param `scaling` (str):                         Scaling method to use. Default is 'standard'. Other is 'minmax'.
+        :param `dtype` (type):                          Data type to convert all inputs and outputs. Defautls to `np.float32`.
+        :param `powers_of_two` (bool):                  Whether to round final sequence lengths to the nearest power of two. Defaults to True.
+                                                        It is recommended to keep this option True, since numerical computing on GPU is more efficient
+                                                        with arrays whose size are powers of two.
+        :param `verbose` (bool):                        Verbosity. Defaults to True.
 
 
         ### Attributes:
@@ -92,16 +96,18 @@ class TabularDataset:
         self.`_out_seq_length` (int): Output sequence length (sliding time window length)
         self.`_out_seq_length_ds` (int): Output sequence length (sliding time window length) after downsampling
         """
-
+        self.dtype = dtype
+        self.powers_of_two = powers_of_two
+        
         # Make output:
         if output_vec is None:
-            output_vec = input_vec.astype(self.DTYPE)
+            output_vec = input_vec.astype(self.dtype)
         
         # Reshape inputs and outputs
         if len(input_vec.shape)==1:
-            input_vec=input_vec.reshape(-1,1).astype(self.DTYPE)
+            input_vec=input_vec.reshape(-1,1).astype(self.dtype)
         if len(output_vec.shape)==1:
-            output_vec=output_vec.reshape(-1,1).astype(self.DTYPE)
+            output_vec=output_vec.reshape(-1,1).astype(self.dtype)
 
         # Reassure size of data.
         assert len(input_vec.shape)==2, \
@@ -153,7 +159,7 @@ class TabularDataset:
             else:
                 inscaler = StandardScaler() if 'standard' in scaling.lower() else MinMaxScaler()
                 inscaler.fit(input_vec)
-            input_vec = inscaler.transform(input_vec).astype(self.DTYPE)
+            input_vec = inscaler.transform(input_vec).astype(self.dtype)
         else:
             inscaler = None
 
@@ -163,7 +169,7 @@ class TabularDataset:
             else:
                 outscaler = StandardScaler() if 'standard' in scaling.lower() else MinMaxScaler()
                 outscaler.fit(output_vec)
-            output_vec = outscaler.transform(output_vec).astype(self.DTYPE)
+            output_vec = outscaler.transform(output_vec).astype(self.dtype)
         else:
             outscaler = None
         
@@ -178,7 +184,7 @@ class TabularDataset:
             inputObj = sliding_window(input_vec, self._in_seq_length_ds, self.sequence_downsampling_rate, 
                 forward_facing=input_forward_facing, 
                 include_current_step=input_include_current_timestep, squeezed=self.in_squeezed, stacked=self.stacked,
-                includes_future_data=input_towards_future, dtype=self.DTYPE)
+                includes_future_data=input_towards_future, dtype=self.dtype, powers_of_two=self.powers_of_two)
             table_in = inputObj["table"]
             self._in_seq_length_final = inputObj["seq_len_ds"]
         else:
@@ -191,7 +197,7 @@ class TabularDataset:
             outputObj = sliding_window(output_vec, self._out_seq_length_ds, self.sequence_downsampling_rate,
                 forward_facing=output_forward_facing, 
                 include_current_step=output_include_current_timestep, squeezed=self.out_squeezed, stacked=self.stacked,
-                includes_future_data=output_towards_future, dtype=self.DTYPE)
+                includes_future_data=output_towards_future, dtype=self.dtype, powers_of_two=self.powers_of_two)
             table_out = outputObj["table"]
             self._out_seq_length_final = outputObj["seq_len_ds"]
         else:
@@ -199,8 +205,8 @@ class TabularDataset:
             self._out_seq_length_final = 1
         if verbose: print("Output Table Shape: ", table_out.shape)
 
-        self.table_in = table_in.astype(self.DTYPE)
-        self.table_out = table_out.astype(self.DTYPE)
+        self.table_in = table_in.astype(self.dtype)
+        self.table_out = table_out.astype(self.dtype)
         self.shape = {"in":self.table_in.shape, "out":self.table_out.shape}
         if verbose: print("TabularDataset constructed successfully.")
     
