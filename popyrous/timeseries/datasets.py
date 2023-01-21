@@ -357,8 +357,8 @@ def make_unsqueezed_dataset(hparams:dict, inputs, outputs, **kwargs):
     # print("Output sequence length:", out_sequence_length)
     
     dataset = TabularDataset(
-        input_vec=inputs, in_seq_length=in_sequence_length, in_features=hparams['in_features'], in_squeezed=False,
-        output_vec=outputs, out_seq_length=out_sequence_length, out_features=hparams['out_features'], 
+        input_vec=inputs, in_seq_length=in_sequence_length, in_squeezed=False,
+        output_vec=outputs, out_seq_length=out_sequence_length, 
         out_squeezed=True, data_downsampling_rate=data_downsampling, sequence_downsampling_rate=seq_downsampling,
         **kwargs)
 
