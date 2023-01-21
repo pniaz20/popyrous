@@ -3,7 +3,7 @@
 (Pouya's Python Routines) A collection of useful Python routines for science, research, development, and everyday life.
 
 Author: Pouya P. Niaz (<pniaz20@ku.edu.tr> , <pouya.p.niaz@gmail.com>)  
-Version: 0.0.6  
+Version: 0.0.7  
 Last Update: 21 Jan, 2023
 
 This is a collection of Python routines for the following purposes:

@@ -35,3 +35,7 @@ Added `popyrous.timeseries.experiments.generate_cell_array` and edited the READM
 #### 0.0.6
 
 - Added `seaborn` to package dependencies due to the previous update.
+
+#### 0.0.7
+
+- Corrected the default input arguments of `popyrous.timeseries.datasets.TabularDataset`.

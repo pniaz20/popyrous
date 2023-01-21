@@ -15,10 +15,10 @@ class TabularDataset:
         input_vec, in_seq_length:int, in_squeezed:bool,
         output_vec=None, out_seq_length:int=1, out_squeezed:bool=True,
         data_downsampling_rate:int=1, sequence_downsampling_rate:int=1, 
-        input_scaling:bool=True, output_scaling:bool=True,
+        input_scaling:bool=False, output_scaling:bool=False,
         input_forward_facing:bool=True, output_forward_facing:bool=True,
         input_include_current_timestep:bool=True, output_include_current_timestep:bool=True,
-        input_towards_future:bool=False, output_towards_future:bool=True,
+        input_towards_future:bool=False, output_towards_future:bool=False,
         stacked=True, extern_input_scaler=None, extern_output_scaler=None, scaling:str='standard', 
         dtype=np.float32, powers_of_two:bool=True, verbose=True):
         """Generate 3D-tabulated dataset using sliding window from multi-variate timeseries data to be used later in 
@@ -40,9 +40,9 @@ class TabularDataset:
                                                         This integer must be greater than or equal to 1.
         :param `sequence_downsampling_rate` (int):      Downsampling rate, if the sequence has too high sampling rate.
         :param `input_scaling` (bool):                  Whether standard scaling should be applied to inputs. 
-                                                        Default is True.
+                                                        Default is False.
         :param `output_scaling` (bool):                 Whether standard scaling should be applied to output targets. 
-                                                        Default is True.
+                                                        Default is False.
         :param `input_forward_facing` (bool):           Whether the input sequences should be forward facing 
                                                         (timestep t-K towards K) or not (backward facing). 
                                                         Default is True.
@@ -51,12 +51,12 @@ class TabularDataset:
         :param `input_include_current_timestep`(bool):  Whether the input sequences include the current time step. 
                                                         Default is True.
         :param `output_include_current_timestep`(bool): Whether the input sequences include the current time step.
-                                                        Default is False, for autoregression.
+                                                        Default is True.
         :param `input_towards_future` (bool):           Whether the input sequences come from future data at 
                                                         every time step rather than past data. Default is False.
         :param `output_towards_future` (bool):          Whether the output sequences come from future data at 
                                                         every time step rather than past data. 
-                                                        Default is True for autoregression.
+                                                        Default is False.
         :param `stacked` (bool):                        If True (default), squeezed columns will be 
                                                         sequence of first feature, 
                                                         then second feature, etc. Otherwise columns will have a
