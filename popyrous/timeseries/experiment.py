@@ -818,9 +818,9 @@ def generate_cell_array(dataframe, hparams,
     num_trials = len(dataframe[trials_column].value_counts()) if trials_column else 1
     
     if verbosity > 0:
-        print("# subjects:   ", num_subjects)
-        print("# conditions: ", num_conditions)
-        print("# trials:     ", num_trials)
+        print("Number of subjects:   ", num_subjects)
+        print("Number of conditions: ", num_conditions)
+        print("Number of trials:     ", num_trials)
         print("\n")
     
 

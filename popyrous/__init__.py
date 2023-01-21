@@ -1,8 +1,6 @@
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
-
-
-_POPYROUS_IMPORT_EVERYTHING_ELSE_ = False
+_POPYROUS_IMPORT_EVERYTHING_ELSE_ = True
 
 if _POPYROUS_IMPORT_EVERYTHING_ELSE_:
     from . matlab import *

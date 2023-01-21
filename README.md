@@ -108,8 +108,11 @@ Some metrics used for time-series classification, etc.
 
 Continmuous Wavelet Transform
 
-- `calculate_wavelet_dataset`: gets a dataset, e.g., a pytorch dataset, or simply a numpy array, of sequences, and calculates CWT on each sequence.
-- `calculate_wavelet_vector`: gets a vector as a time series sequence (multiple features) and calculates its CWT
+- `cwt_for_batch`: gets a numpy array of shape, e.g., (batchsize, channels, seqlen) [could be any shape, as long as time is the last dimension]
+  and returns an array of its CWT coefficients.
+  Additionally, it can downsample it and remove the last row and column. Returns a (batchsize, channels, coefs, seqlen) dataset of 2D images.
+- `cwt_for_tensor`: gets a data tensor of any shape and simply performs CWT on it. Takes the last dimension as time, and adds a dimension
+  to the beginning, containing coefficients.
 
 ### 2-4- web
 

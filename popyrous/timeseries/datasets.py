@@ -14,8 +14,8 @@ class TabularDataset:
     DTYPE = np.float32
     POWERS_OF_TWO = True
     def __init__(self, 
-        input_vec, in_seq_length:int, in_features:int, in_squeezed:bool,
-        output_vec=None, out_seq_length:int=1, out_features:int=0, out_squeezed:bool=True,
+        input_vec, in_seq_length:int, in_squeezed:bool,
+        output_vec=None, out_seq_length:int=1, out_squeezed:bool=True,
         data_downsampling_rate:int=1, sequence_downsampling_rate:int=1, 
         input_scaling:bool=True, output_scaling:bool=True,
         input_forward_facing:bool=True, output_forward_facing:bool=True,
@@ -29,14 +29,12 @@ class TabularDataset:
 
         :param `input_vec` (numpy array):               [Nx1] vector of timeseries inputs.
         :param `in_seq_length` (int):                   Input sequence length (sliding time window length)
-        :param `in_features` (int)                      Number of features of input
         :param `in_squeezed` (bool):                    Squeezed inputs (batch, seqlen*features) as in ANNs 
                                                         or unsqueezed (batch, seqlen, features) as in LSTM
         :param `output_vec` (numpy array):              [Nx1] vector of timeseries outputs (targets). 
                                                         Default is the same as inputs (for autoregression).
         :param `out_seq_length` (int):                  Output (target) sequence length (sliding time window length).
                                                         Default is 1 (estimation rather than forecasting)
-        :param `out_features` (int):                    Number of features of the output target. Default is 0.
         :param `out_squeezed` (bool):                   Squeezed inputs (batch, seqlen*features) as in Dense outputs
                                                         or unsqueezed (batch, seqlen, features) as in RNN outputs
         :param `data_downsampling_rate` (int):          Downsampling rate, if the data has too high sampling rate.
@@ -93,8 +91,6 @@ class TabularDataset:
         self.`_in_seq_length_ds` (int): Input sequence length (sliding time window length) after downsampling
         self.`_out_seq_length` (int): Output sequence length (sliding time window length)
         self.`_out_seq_length_ds` (int): Output sequence length (sliding time window length) after downsampling
-        self.`_in_features` (int):Number of features of input
-        self.`_out_features` (int):Number of features of input
         """
 
         # Make output:
@@ -107,16 +103,11 @@ class TabularDataset:
         if len(output_vec.shape)==1:
             output_vec=output_vec.reshape(-1,1).astype(self.DTYPE)
 
-        if out_features==0:
-            out_features = output_vec.shape[-1]
-
         # Reassure size of data.
-        assert len(input_vec.shape)==2 and input_vec.shape[1]==in_features, \
-            "All inputs and outputs must be NumData x NumFeatures vectors. "+\
-            "Inputs and Outputs must have the same number of rows (datapoints)."
-        assert len(output_vec.shape)==2 and output_vec.shape[1]==out_features, \
-            "All inputs and outputs must be NumData x NumFeatures vectors. "+\
-            "Inputs and Outputs must have the same number of rows (datapoints)."
+        assert len(input_vec.shape)==2, \
+            "All inputs and outputs must be NumData x NumFeatures vectors. "
+        assert len(output_vec.shape)==2, \
+            "All inputs and outputs must be NumData x NumFeatures vectors. "
 
         # Reassure inputs and outputs have the same size.
         assert input_vec.shape[0]==output_vec.shape[0], \
@@ -136,8 +127,6 @@ class TabularDataset:
         self._out_seq_length = out_seq_length
         self._input_is_sequence = (in_seq_length > 1)
         self._output_is_sequence = (out_seq_length > 1)
-        self.in_features = in_features
-        self.out_features = out_features
         self.data_downsampling_rate = data_downsampling_rate
         self.sequence_downsampling_rate = sequence_downsampling_rate
 
@@ -156,8 +145,6 @@ class TabularDataset:
         else:
             self._in_seq_length_ds = in_seq_length
             self._out_seq_length_ds = out_seq_length
-        
-
 
         # Scaling inputs and outputs
         if input_scaling:
@@ -215,7 +202,7 @@ class TabularDataset:
         self.table_in = table_in.astype(self.DTYPE)
         self.table_out = table_out.astype(self.DTYPE)
         self.shape = {"in":self.table_in.shape, "out":self.table_out.shape}
-        if verbose: print("Dataset constructed successfully.")
+        if verbose: print("TabularDataset constructed successfully.")
     
 
 
@@ -295,8 +282,8 @@ def make_squeezed_dataset(hparams:dict, inputs, outputs, **kwargs):
 
     # Generating dataset
     dataset = TabularDataset(
-        inputs, in_sequence_length, in_features=hparams['in_features'], in_squeezed=True, 
-        output_vec=outputs, out_seq_length=out_sequence_length, out_features=hparams['out_features'], 
+        inputs, in_sequence_length, in_squeezed=True, 
+        output_vec=outputs, out_seq_length=out_sequence_length, 
         out_squeezed=True, data_downsampling_rate=data_downsampling, 
         sequence_downsampling_rate=seq_downsampling, 
         **kwargs)
