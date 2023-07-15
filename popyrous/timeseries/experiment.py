@@ -3,6 +3,7 @@ SEED = 42
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+import warnings
 
 if __name__ == "popyrous.timeseries.experiment":
     from . datasets import make_squeezed_dataset, make_unsqueezed_dataset
@@ -380,7 +381,7 @@ class TimeseriesExperiment:
                     # Update the array that stores if the trial is for training or testing        
                     is_test_arr[subj, ctrl, trial] = is_test
                     
-                    # Extract relevant columns of the data
+                    # Extract relevant trial of the data
                     data_trial = self.dataframe
                     if self.subjects_column:
                         data_trial = data_trial[data_trial[self.subjects_column] == subj+1]
@@ -388,6 +389,16 @@ class TimeseriesExperiment:
                         data_trial = data_trial[data_trial[self.conditions_column] == ctrl+1]
                     if self.trials_column:
                         data_trial = data_trial[data_trial[self.trials_column] == trial+1]
+                    if len(data_trial) == 0: # There is no data in this particular trial
+                        print("")
+                        x_arrays[subj, ctrl, trial] = []
+                        y_arrays[subj, ctrl, trial] = []
+                        data_arrays_orig[subj, ctrl, trial] = {}
+                        data_arrays_processed[subj, ctrl, trial] = {}
+                        is_test_arr[subj, ctrl, trial] = None
+                        print("")
+                        warnings.warn("No data found for subject %d, condition %d, trial %d. Skipping ..."%(subj+1, ctrl+1, trial+1), RuntimeWarning)
+                        continue
                     if verbosity == 2: print(data_trial.shape, end="")
                     
                     # Input Preprocessing
@@ -912,7 +923,7 @@ def generate_cell_array(dataframe, hparams,
                 #     (dataframe[conditions_column] == ctrl+1) & \
                 #     (dataframe[trials_column] == trial+1)]
                 
-                # Extract relevant columns of the data
+                # Extract relevant trial of the data
                 data_trial = dataframe
                 if subjects_column:
                     data_trial = data_trial[data_trial[subjects_column] == subj+1]
@@ -920,6 +931,16 @@ def generate_cell_array(dataframe, hparams,
                     data_trial = data_trial[data_trial[conditions_column] == ctrl+1]
                 if trials_column:
                     data_trial = data_trial[data_trial[trials_column] == trial+1]
+                if len(data_trial) == 0: # There is no data in this particular trial
+                    print("")
+                    x_arrays[subj, ctrl, trial] = []
+                    y_arrays[subj, ctrl, trial] = []
+                    data_arrays_orig[subj, ctrl, trial] = {}
+                    data_arrays_processed[subj, ctrl, trial] = {}
+                    is_test_arr[subj, ctrl, trial] = None
+                    print("")
+                    warnings.warn("No data found for subject %d, condition %d, trial %d. Skipping ..."%(subj+1, ctrl+1, trial+1), RuntimeWarning)
+                    continue
                 if verbosity == 2: print(data_trial.shape, end="")
                 
                 # Input Preprocessing
