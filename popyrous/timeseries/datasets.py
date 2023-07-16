@@ -26,55 +26,54 @@ class TabularDataset:
 
         ### Parameters:
 
-        :param `input_vec` (numpy array):               [Nx1] vector of timeseries inputs.
-        :param `in_seq_length` (int):                   Input sequence length (sliding time window length)
-        :param `in_squeezed` (bool):                    Squeezed inputs (batch, seqlen*features) as in ANNs 
-                                                        or unsqueezed (batch, seqlen, features) as in LSTM
-        :param `output_vec` (numpy array):              [Nx1] vector of timeseries outputs (targets). 
-                                                        Default is the same as inputs (for autoregression).
-        :param `out_seq_length` (int):                  Output (target) sequence length (sliding time window length).
-                                                        Default is 1 (estimation rather than forecasting)
-        :param `out_squeezed` (bool):                   Squeezed inputs (batch, seqlen*features) as in Dense outputs
-                                                        or unsqueezed (batch, seqlen, features) as in RNN outputs
-        :param `data_downsampling_rate` (int):          Downsampling rate, if the data has too high sampling rate.
-                                                        This integer must be greater than or equal to 1.
-        :param `sequence_downsampling_rate` (int):      Downsampling rate, if the sequence has too high sampling rate.
-        :param `input_scaling` (bool):                  Whether standard scaling should be applied to inputs. 
-                                                        Default is False.
-        :param `output_scaling` (bool):                 Whether standard scaling should be applied to output targets. 
-                                                        Default is False.
-        :param `input_forward_facing` (bool):           Whether the input sequences should be forward facing 
-                                                        (timestep t-K towards K) or not (backward facing). 
-                                                        Default is True.
-        :param `output_forward_facing` (bool):          Whether the output target sequences should be forward facing. 
-                                                        Default is True.
-        :param `input_include_current_timestep`(bool):  Whether the input sequences include the current time step. 
-                                                        Default is True.
-        :param `output_include_current_timestep`(bool): Whether the input sequences include the current time step.
-                                                        Default is True.
-        :param `input_towards_future` (bool):           Whether the input sequences come from future data at 
-                                                        every time step rather than past data. Default is False.
-        :param `output_towards_future` (bool):          Whether the output sequences come from future data at 
-                                                        every time step rather than past data. 
-                                                        Default is False.
-        :param `stacked` (bool):                        If True (default), squeezed columns will be 
-                                                        sequence of first feature, 
-                                                        then second feature, etc. Otherwise columns will have a
-                                                        cascaded arrangement, i.e. features of first time step,
-                                                        features of second time step, etc. 
-                                                        Only applies to squeezed inputs/outputs.
-        :param `extern_input_scaler` (sklearn scaler):  If not None, this scaler will be used to scale the inputs.
-                                                        Default is None.
-        :param `extern_output_scaler` (sklearn scaler): If not None, this scaler will be used to scale the outputs.
-                                                        Default is None.
-        :param `scaling` (str):                         Scaling method to use. Default is 'standard'. Other is 'minmax'.
-        :param `dtype` (type):                          Data type to convert all inputs and outputs. Defautls to `np.float32`.
-        :param `powers_of_two` (bool):                  Whether to round final sequence lengths to the nearest power of two. Defaults to True.
-                                                        It is recommended to keep this option True, since numerical computing on GPU is more efficient
-                                                        with arrays whose size are powers of two.
-        :param `verbose` (bool):                        Verbosity. Defaults to True.
+        - `input_vec` (numpy array): [Nx1] vector of timeseries inputs.
+        - `in_seq_length` (int): Input sequence length (sliding time window length)
+        - `in_squeezed` (bool): Squeezed inputs (batch, seqlen*features) as in ANNs or unsqueezed (batch, seqlen, features) as in LSTM
+        - `output_vec` (numpy array): [Nx1] vector of timeseries outputs (targets). Default is the same as inputs (for autoregression).
+        - `out_seq_length` (int): Output (target) sequence length (sliding time window length). Default is 1 (estimation rather than forecasting)
+        - `out_squeezed` (bool): Squeezed inputs (batch, seqlen*features) as in Dense outputs or unsqueezed (batch, seqlen, features) as in RNN outputs
+        - `data_downsampling_rate` (int): Downsampling rate, if the data has too high sampling rate. This integer must be greater than or equal to 1.
+        - `sequence_downsampling_rate` (int): Downsampling rate, if the sequence has too high sampling rate.
+        - `input_scaling` (bool): Whether standard scaling should be applied to inputs. Default is False.
+        - `output_scaling` (bool): Whether standard scaling should be applied to output targets. Default is False.
+        - `input_forward_facing` (bool): Whether the input sequences should be forward facing (timestep t-K towards K) or not (backward facing). Default is True.
+        - `output_forward_facing` (bool): Whether the output target sequences should be forward facing. Default is True.
+        - `input_include_current_timestep`(bool):  Whether the input sequences include the current time step. Default is True.
+        - `output_include_current_timestep`(bool): Whether the input sequences include the current time step. Default is True.
+        - `input_towards_future` (bool): Whether the input sequences come from future data at every time step rather than past data. Default is False.
+        - `output_towards_future` (bool): Whether the output sequences come from future data at every time step rather than past data. Default is False.
+        - `stacked` (bool): If True (default), squeezed columns will be sequence of first feature, then second feature, etc. Otherwise columns will have a
+            cascaded arrangement, i.e. features of first time step, features of second time step, etc. Only applies to squeezed inputs/outputs.
+        - `extern_input_scaler` (sklearn scaler):  If not None, this scaler will be used to scale the inputs. Default is None.
+        - `extern_output_scaler` (sklearn scaler): If not None, this scaler will be used to scale the outputs. Default is None.
+        - `scaling` (str): Scaling method to use. Default is 'standard'. Other is 'minmax'.
+        - `dtype` (type): Data type to convert all inputs and outputs. Defautls to `np.float32`.
+        - `powers_of_two` (bool): Whether to round final sequence lengths to the nearest power of two. Defaults to True. It is recommended to keep this option True, since numerical
+            computing on GPU is more efficient with arrays whose size are powers of two.
+        - `verbose` (bool): Verbosity. Defaults to True.
 
-
+        The data downsampling rate downsamples the data when extracting it, so dataset size (number of samples) is divided by the downsampling rate.
+        After the time series is downsampled by the `data_downsampling`, sequences are extracted from it using a sliding window. After the sequences are extracted, they can still have
+        too many time steps in them especially if the sampling rate was high to begin with. Then, the `sequence_downsampling` is applied, and all the extracted sequences are
+        downsampled. This does not change the dataset size; it only decreases the number of time steps in each sequence.
+        
+        Data downsampling is typically used when the sampling frequency is too high and there are too many time series or the series are too long. Sequence downsampling is typically 
+        used when the sequence length (in units of time) needs to remain large enough to extract meaningful trends and information, but because the sampling frequency is too high the 
+        sequences end up having too many time steps. Sequence downsampling makes sure the time-length of the sequences remains constant while the number of time steps in each sequence 
+        is reduced.
+        
+        For example, let us assume 100 trials of a time-series experiment were performed, each lasting 100 seconds, with a sampling frequency of 1000 Hz. This means there are a total
+        of 100 K timesteps in each trial, amounting to 10 M time steps (training samples) in total. Let us assume that the sequences that you extract with a sliding window need to be
+        at least 2 seconds long to be able to extract meaningful information from them. There are two problems here. Firstly, there are too many data points (10 M) in the training set.
+        Secondly, the sequences will have too many time steps in them (2000) which will make training difficult and memory-intensive. To solve this problem, we apply a
+        `data_downsampling` rate of 4, reducing the effective sampling frequency to 250 Hz. This reduces the number of data points to 2.5 M.
+        Also, this will mean that our 2-second sequences will have 500 time steps in them. Right now, 2.5 M dataset size is good, and we do not want to reduce it further. However,
+        especially if the data is smooth enough, 500 time steps in a sequence may be still too high. If we increase the `data_downsampling` rate, dataset size will also decrease,
+        and we do not want that. Therefore, we simply apply a `sequence_downsampling` rate of 10, which will reduce the number of time steps in each sequence to 50, without touching
+        the dataset size, affecting the rate of extracting sequences from the time series, or affecting the time length of the extracted sequences. Assuming that the data is smooth 
+        and 50 timesteps forming a 2-second sequence are enough to extract meaningful information from the data, this is a good solution. We will eventually have 2.5 M sequences with
+        50 time steps in each.
+        
         ### Attributes:
 
         self.`size` (int): Total number of timesteps in the dataset, after downsampling.
@@ -251,6 +250,28 @@ def make_squeezed_dataset(hparams:dict, inputs, outputs, **kwargs):
             - `out_features` (int): Number of output features. Default is 1.
         - `inputs` (numpy array): Matrix of pure timeseries inputs, as in (num_data, features)
         - `outputs` (numpy arrays): Matrix of pure timeseries outputs, as in (num_data, features)
+    
+    The data downsampling rate downsamples the data when extracting it, so dataset size (number of samples) is divided by the downsampling rate.
+    After the time series is downsampled by the `data_downsampling`, sequences are extracted from it using a sliding window. After the sequences are extracted, they can still have
+    too many time steps in them especially if the sampling rate was high to begin with. Then, the `sequence_downsampling` is applied, and all the extracted sequences are
+    downsampled. This does not change the dataset size; it only decreases the number of time steps in each sequence.
+    
+    Data downsampling is typically used when the sampling frequency is too high and there are too many time series or the series are too long. Sequence downsampling is typically 
+    used when the sequence length (in units of time) needs to remain large enough to extract meaningful trends and information, but because the sampling frequency is too high the 
+    sequences end up having too many time steps. Sequence downsampling makes sure the time-length of the sequences remains constant while the number of time steps in each sequence 
+    is reduced.
+    
+    For example, let us assume 100 trials of a time-series experiment were performed, each lasting 100 seconds, with a sampling frequency of 1000 Hz. This means there are a total
+    of 100 K timesteps in each trial, amounting to 10 M time steps (training samples) in total. Let us assume that the sequences that you extract with a sliding window need to be
+    at least 2 seconds long to be able to extract meaningful information from them. There are two problems here. Firstly, there are too many data points (10 M) in the training set.
+    Secondly, the sequences will have too many time steps in them (2000) which will make training difficult and memory-intensive. To solve this problem, we apply a
+    `data_downsampling` rate of 4, reducing the effective sampling frequency to 250 Hz. This reduces the number of data points to 2.5 M.
+    Also, this will mean that our 2-second sequences will have 500 time steps in them. Right now, 2.5 M dataset size is good, and we do not want to reduce it further. However,
+    especially if the data is smooth enough, 500 time steps in a sequence may be still too high. If we increase the `data_downsampling` rate, dataset size will also decrease,
+    and we do not want that. Therefore, we simply apply a `sequence_downsampling` rate of 10, which will reduce the number of time steps in each sequence to 50, without touching
+    the dataset size, affecting the rate of extracting sequences from the time series, or affecting the time length of the extracted sequences. Assuming that the data is smooth 
+    and 50 timesteps forming a 2-second sequence are enough to extract meaningful information from the data, this is a good solution. We will eventually have 2.5 M sequences with
+    50 time steps in each.
 
     ### Returns:
         - `TabularDataset`: Dataset object, fully preprocessed, usable in a similar format to PyTorch datasets.
@@ -317,19 +338,47 @@ def make_unsqueezed_dataset(hparams:dict, inputs, outputs, **kwargs):
             - `data_sampling_rate_Hz` (float): Sampling rate of the timeseries data, in Hertz.
             - `in_features` (int): Number of input features. Default is 1.
             - `out_features` (int): Number of output features. Default is 1.
-        - `inputs` (numpy array): Matrix of pure timeseries inputs, as in (num_data, features)
-        - `outputs` (numpy arrays): Matrix of pure timeseries outputs, as in (num_data, features)
+        - `inputs` (numpy array): Matrix of pure timeseries inputs, as in (num_samples, features)
+        - `outputs` (numpy arrays): Matrix of pure timeseries outputs, as in (num_samples, features)
+    
+    The data downsampling rate downsamples the data when extracting it, so dataset size (number of samples) is divided by the downsampling rate.
+    After the time series is downsampled by the `data_downsampling`, sequences are extracted from it using a sliding window. After the sequences are extracted, they can still have
+    too many time steps in them especially if the sampling rate was high to begin with. Then, the `sequence_downsampling` is applied, and all the extracted sequences are
+    downsampled. This does not change the dataset size; it only decreases the number of time steps in each sequence.
+    
+    Data downsampling is typically used when the sampling frequency is too high and there are too many time series or the series are too long. Sequence downsampling is typically 
+    used when the sequence length (in units of time) needs to remain large enough to extract meaningful trends and information, but because the sampling frequency is too high the 
+    sequences end up having too many time steps. Sequence downsampling makes sure the time-length of the sequences remains constant while the number of time steps in each sequence 
+    is reduced.
+    
+    For example, let us assume 100 trials of a time-series experiment were performed, each lasting 100 seconds, with a sampling frequency of 1000 Hz. This means there are a total
+    of 100 K timesteps in each trial, amounting to 10 M time steps (training samples) in total. Let us assume that the sequences that you extract with a sliding window need to be
+    at least 2 seconds long to be able to extract meaningful information from them. There are two problems here. Firstly, there are too many data points (10 M) in the training set.
+    Secondly, the sequences will have too many time steps in them (2000) which will make training difficult and memory-intensive. To solve this problem, we apply a
+    `data_downsampling` rate of 4, reducing the effective sampling frequency to 250 Hz. This reduces the number of data points to 2.5 M.
+    Also, this will mean that our 2-second sequences will have 500 time steps in them. Right now, 2.5 M dataset size is good, and we do not want to reduce it further. However,
+    especially if the data is smooth enough, 500 time steps in a sequence may be still too high. If we increase the `data_downsampling` rate, dataset size will also decrease,
+    and we do not want that. Therefore, we simply apply a `sequence_downsampling` rate of 10, which will reduce the number of time steps in each sequence to 50, without touching
+    the dataset size, affecting the rate of extracting sequences from the time series, or affecting the time length of the extracted sequences. Assuming that the data is smooth 
+    and 50 timesteps forming a 2-second sequence are enough to extract meaningful information from the data, this is a good solution. We will eventually have 2.5 M sequences with
+    50 time steps in each.
+    
+    
+    
 
     ### Returns:
         - `TabularDataset`: Dataset object, usable in a similar manner to Pytorch datasets.
         Can be used later for making data loaders, etc.
-        - `dict`: Modified dictionary of hyperparameters, also including the `"in_seq_len"` and `"out_seq_len"` keys.
+        - `dict`: Modified dictionary of hyperparameters, also including the `in_seq_len`, `out_seq_len` and `out_features` keys.
     
     ### Usage:
     `dataset, hparams = make_unsqueezed_dataset(hparams, inputs, outputs)`
     
     **NOTE** A modified version of the input hyperparams dictionary will also be returned for later use when 
     constructing the Seq2Dense model.
+    
+    **NOTE** At the end, out_features will be multiplied by the output sequence length, because all outputs are squeezed in this function, and most deep learning methods
+    take the total squeezed width of the output layer (2D tensor) as `out_features`.
     """
     in_window_size_sec = hparams["in_seq_len_sec"]
     out_window_size_sec = hparams["out_seq_len_sec"]
@@ -367,6 +416,7 @@ def make_unsqueezed_dataset(hparams:dict, inputs, outputs, **kwargs):
     out_size = dataset._out_seq_length_final
     hparams['in_seq_len'] = in_size
     hparams['out_seq_len'] = out_size
+    hparams['out_features'] *= out_size # In the new version of eznet-keras, out_features should also include any sequence length, etc., because it is all squeezed.
 
     return dataset, hparams
 

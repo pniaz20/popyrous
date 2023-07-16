@@ -65,20 +65,27 @@ class TimeseriesExperiment:
             
             ** Description of data downsampling and sequence downsampling **
             
-            Data downsampling downsamples the existing datapoints before generating any sliding window or sequences or anything.
-            It therefore decreases the size of the training set.
+            The data downsampling rate downsamples the data when extracting it, so dataset size (number of samples) is divided by the downsampling rate.
+            After the time series is downsampled by the `data_downsampling`, sequences are extracted from it using a sliding window. After the sequences are extracted, they can 
+            still have too many time steps in them especially if the sampling rate was high to begin with. Then, the `sequence_downsampling` is applied, and all the extracted 
+            sequences are downsampled. This does not change the dataset size; it only decreases the number of time steps in each sequence.
             
-            If a specific sequence length is required in units of time for meaningful extraction of features, but the sampling frequency
-            is extremely large, then the generated sequences will be too large to fit in memory. This is where sequence downsampling comes in.
+            Data downsampling is typically used when the sampling frequency is too high and there are too many time series or the series are too long. Sequence downsampling is 
+            typically used when the sequence length (in units of time) needs to remain large enough to extract meaningful trends and information, but because the sampling 
+            frequency is too high the sequences end up having too many time steps. Sequence downsampling makes sure the time-length of the sequences remains constant while the 
+            number of time steps in each sequence is reduced.
             
-            Sequence downsampling simply downsamples the sequences in every data point, so number of training samples is unaffected,
-            the true time length of the sequences are also unaffected, but the sequences themselves are downsampled, so they have
-            fewer time steps in them. Therefore, the number of time steps are fewer, less memory is occupied, but training set size and
-            the true time length of the sequences are preserved.
-                
-            Note that data downsampling decreases dataset size AND makes sequences more coarsely sampled without
-            changing the true time length of the sequence. Sequence downsampling, on the other hand, does not touch
-            dataset size. It only downsamples the sequences that are already generated from the sliding window.
+            For example, let us assume 100 trials of a time-series experiment were performed, each lasting 100 seconds, with a sampling frequency of 1000 Hz. This means there are 
+            a total of 100 K timesteps in each trial, amounting to 10 M time steps (training samples) in total. Let us assume that the sequences that you extract with a sliding 
+            window need to be at least 2 seconds long to be able to extract meaningful information from them. There are two problems here. Firstly, there are too many data points 
+            (10 M) in the training set. Secondly, the sequences will have too many time steps in them (2000) which will make training difficult and memory-intensive. To solve this 
+            problem, we apply a `data_downsampling` rate of 4, reducing the effective sampling frequency to 250 Hz. This reduces the number of data points to 2.5 M.
+            Also, this will mean that our 2-second sequences will have 500 time steps in them. Right now, 2.5 M dataset size is good, and we do not want to reduce it further. 
+            However, especially if the data is smooth enough, 500 time steps in a sequence may be still too high. If we increase the `data_downsampling` rate, dataset size will 
+            also decrease, and we do not want that. Therefore, we simply apply a `sequence_downsampling` rate of 10, which will reduce the number of time steps in each sequence to
+            50, without touching the dataset size, affecting the rate of extracting sequences from the time series, or affecting the time length of the extracted sequences. 
+            Assuming that the data is smooth and 50 timesteps forming a 2-second sequence are enough to extract meaningful information from the data, this is a good solution. 
+            We will eventually have 2.5 M sequences with 50 time steps in each.
             
             Therefore, if the size and/or sampling frequency of the data is too high, data downsampling is preferred.
             However, if the dataset size is fine, but due to the long sequence length or high sampling rate, sequences
@@ -86,7 +93,7 @@ class TimeseriesExperiment:
             is preferred. Sequence downsampling will not touch the size/sampling frequency of the data itself, 
             nor will it touch the true time length of the sequences. It will only make the sequences downsampled 
             and more coarse. Therefore, number of data points in the dataset will remain constant, as will the true 
-            time length of the sequences. However, the number of data points in the sequences will decrease.
+            time length of the sequences. However, the number of time steps in the sequences will decrease.
             
             **IMPORTANT** 
             
@@ -97,7 +104,9 @@ class TimeseriesExperiment:
             This is useful when, e.g., the data will be sent to an ANN that uses 2D tensors as inputs.
             
              - If `data_squeezed` is False: The `in_seq_len` and `out_seq_len` hyperparameters will be updated.
-            This is useful when RNN-based or CNN-based models will be deployed, where inputs are 3D.
+            This is useful when RNN-based or CNN-based models will be deployed, where inputs are 3D. In this case, at the end, `out_features` key will also be updated and
+            multiplied by the `out_seq_len` to get the final output layer width. Thsi is because this class assumes that regardless of input shapes, outputs are always
+            squeezed to 2D tensors. Therefore,  the final output layer width will be `out_features *= out_seq_len`.
             
             ** NOTE ** that in the case of unsqueezed data, the 3D tensors coming from the sliding windows will be of shape 
             (batch size, sequence length, features/channels) which is OK with Keras, but not OK with PyTorch, for instance.
@@ -439,7 +448,7 @@ class TimeseriesExperiment:
                     else:
                         dataset, self.hparams = make_unsqueezed_dataset(self.hparams, data_features, y, verbose=False, **kwargs)
                     
-                    # Get input and output trables   
+                    # Get input and output tables   
                     x_processed = dataset.table_in
                     y_processed = dataset.table_out
                     if verbosity == 2:
@@ -452,8 +461,8 @@ class TimeseriesExperiment:
                     if self.output_postprocessor:
                         y_processed = self.output_postprocessor(y_processed)
                     if verbosity == 2:
-                        print("; x: ",x_processed.shape, end="")
-                        print(", y: ",y_processed.shape, end="")
+                        print("; (post) x: ",x_processed.shape, end="")
+                        print(", (post) y: ",y_processed.shape, end="")
                     
                     # Construct data arrays    
                     if self.return_train_val_test_arrays:
@@ -679,18 +688,37 @@ def generate_cell_array(dataframe, hparams,
                 If this is a tuple, it should be e.g. [0.2, 'trainset'] or [0.1,'testset'].
             
              
-            ** Description of data downsampling and sequence downsam,pling **
+            ** Description of data downsampling and sequence downsampling **
             
-            Note that data downsampling decreases dataset size AND makes sequences more coarsely sampled without
-            changing the true time length of the sequence. Sequence downsampling, on the other hand, does not touch
-            dataset size. It only downsamples the sequences that are already generated from the sliding window.
+            The data downsampling rate downsamples the data when extracting it, so dataset size (number of samples) is divided by the downsampling rate.
+            After the time series is downsampled by the `data_downsampling`, sequences are extracted from it using a sliding window. After the sequences are extracted, they can 
+            still have too many time steps in them especially if the sampling rate was high to begin with. Then, the `sequence_downsampling` is applied, and all the extracted 
+            sequences are downsampled. This does not change the dataset size; it only decreases the number of time steps in each sequence.
+            
+            Data downsampling is typically used when the sampling frequency is too high and there are too many time series or the series are too long. Sequence downsampling is 
+            typically used when the sequence length (in units of time) needs to remain large enough to extract meaningful trends and information, but because the sampling 
+            frequency is too high the sequences end up having too many time steps. Sequence downsampling makes sure the time-length of the sequences remains constant while the 
+            number of time steps in each sequence is reduced.
+            
+            For example, let us assume 100 trials of a time-series experiment were performed, each lasting 100 seconds, with a sampling frequency of 1000 Hz. This means there are 
+            a total of 100 K timesteps in each trial, amounting to 10 M time steps (training samples) in total. Let us assume that the sequences that you extract with a sliding 
+            window need to be at least 2 seconds long to be able to extract meaningful information from them. There are two problems here. Firstly, there are too many data points 
+            (10 M) in the training set. Secondly, the sequences will have too many time steps in them (2000) which will make training difficult and memory-intensive. To solve this 
+            problem, we apply a `data_downsampling` rate of 4, reducing the effective sampling frequency to 250 Hz. This reduces the number of data points to 2.5 M.
+            Also, this will mean that our 2-second sequences will have 500 time steps in them. Right now, 2.5 M dataset size is good, and we do not want to reduce it further. 
+            However, especially if the data is smooth enough, 500 time steps in a sequence may be still too high. If we increase the `data_downsampling` rate, dataset size will 
+            also decrease, and we do not want that. Therefore, we simply apply a `sequence_downsampling` rate of 10, which will reduce the number of time steps in each sequence to
+            50, without touching the dataset size, affecting the rate of extracting sequences from the time series, or affecting the time length of the extracted sequences. 
+            Assuming that the data is smooth and 50 timesteps forming a 2-second sequence are enough to extract meaningful information from the data, this is a good solution. 
+            We will eventually have 2.5 M sequences with 50 time steps in each.
+            
             Therefore, if the size and/or sampling frequency of the data is too high, data downsampling is preferred.
-            However, if the dataset size/sampling frequency is fine, but due to the high sequence length, sequences
-            hold too many data points in them and matrices end up being too large for the RAM, sequence downsampling 
+            However, if the dataset size is fine, but due to the long sequence length or high sampling rate, sequences
+            hold too many data points in them and matrices end up being too large for the memory, sequence downsampling 
             is preferred. Sequence downsampling will not touch the size/sampling frequency of the data itself, 
             nor will it touch the true time length of the sequences. It will only make the sequences downsampled 
             and more coarse. Therefore, number of data points in the dataset will remain constant, as will the true 
-            time length of the sequences. However, the number of data points in the sequences will decrease.
+            time length of the sequences. However, the number of time steps in the sequences will decrease.
             
             
             
@@ -700,12 +728,13 @@ def generate_cell_array(dataframe, hparams,
             dictionary will be updated as follows:
             
              - If `data_squeezed` is True: The `input_size` and `output_size` hyperparameters will be updated.
-            This is useful when `Keras_ANN` or `Pytorch_ANN` or generally MLP models will be deployed,
+            This is useful when MLP models will be deployed,
             where inputs are 2D tables.
             
              - If `data_squeezed` is False: The `in_seq_len` and `out_seq_len` hyperparameters will be updated.
-            This is useful when `Keras_Seq2Dense` or `Pytorch_Seq2Dense` or generally RNN-based or CNN-based models
-            will be deployed, where inputs are 3D.
+            This is useful when generally RNN-based or CNN-based models
+            will be deployed, where inputs are 3D. In this case, the `out_features` key will also be multiplied by the `out_seq_len` to get the total number of output features.
+            This is because regardless of input shapes, outputs in this function are always assumed to be squeezed. `out_features` is the final output layer width.
             
             
         - `subjects_column` (str, optional): Column of the DataFrame holding subject numbers, if any. Defaults to None.
