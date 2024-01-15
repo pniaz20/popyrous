@@ -3,8 +3,8 @@
 (Pouya's Python Routines) A collection of useful and frequently encountered Python routines for (data) science, research, development, and everyday life.
 
 Author: Pouya P. Niaz (<pniaz20@ku.edu.tr> , <pouya.p.niaz@gmail.com>)  
-Version: 0.0.9  
-Last Update: July 16, 2023
+Version: 0.0.10  
+Last Update: January 15, 2024
 
 This is a collection of Python routines for the following purposes:
 
