@@ -3,8 +3,8 @@
 (Pouya's Python Routines) A collection of useful and frequently encountered Python routines for (data) science, research, development, and everyday life.
 
 Author: Pouya P. Niaz (<pniaz20@ku.edu.tr> , <pouya.p.niaz@gmail.com>)  
-Version: 0.0.10  
-Last Update: January 15, 2024
+Version: 0.0.11  
+Last Update: February 15, 2024
 
 This is a collection of Python routines for the following purposes:
 
@@ -94,9 +94,11 @@ Some functions for low-pass filtering time series data.
 - `butter_lowpass_filter_forward` filters input data with a digital Butterworth low-pass filter gvien sampling and cutoff frequncies, and filter order.
   This filter is causal, and only goes forward in time. It does not see its future. It is used for real-time implementations.
   Because this filter is causal, it induces a phase shift, so the filtered signal will have a delay relative to the real signal.
-  The lower the cutoff frequency, the longer the delay.
-- `butter_lowpass_filter_back_to_back` filters input data similarly, but uses `filtfilt` to go back to back, so it looks both to past and future.
+  The lower the cutoff frequency, the longer the delay. This function in turn uses the `sosfiltfilt` utility of SciPy.
+- `butter_lowpass_filter_back_to_back` filters input data similarly, but uses `sosfiltfilt` to go back to back, so it looks both to past and future.
   It can only smooth the data offline, since it has access to the future as well. Unlike the previous causal filter, it has no phase shift.
+- `butter_highpass_filter_forward` and `butter_highpass_filter_back_to_back` can be used for similar purposes.
+- The new `butter_filter` function encompasses virtually any kind of digital Butterworth filter, including all of the above.
 
 #### 2-3-5- metrics
 
