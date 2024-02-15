@@ -20,9 +20,7 @@ def butter_lowpass_filter_back_to_back(data, cutoff, fs, order, axis=-1, padtype
         Filtered Data
     """
     warnings.warn("This function is depracated. Use `butter_filter` instead.", DeprecationWarning)
-    nyquist_freq = 0.5 * fs
-    normal_cutoff = cutoff / nyquist_freq
-    sos = butter(order, normal_cutoff, btype='lowpass', fs=fs, analog=False, output='sos')
+    sos = butter(order, cutoff, btype='lowpass', fs=fs, analog=False, output='sos')
     y = sosfiltfilt(sos, data, axis=axis, padtype=padtype, padlen=padlen)
     return y
 
@@ -45,9 +43,7 @@ def butter_lowpass_filter_forward(data, cutoff, fs, order, axis=-1, zi=None):
         Filtered Data, if `zi` is None. Otherwise, (Filtered Data, Final Conditions `zf`)
     """
     warnings.warn("This function is depracated. Use `butter_filter` instead.", DeprecationWarning)
-    nyquist_freq = 0.5 * fs
-    normal_cutoff = cutoff / nyquist_freq
-    sos = butter(order, normal_cutoff, btype='lowpass', analog=False, fs=fs, output='sos')
+    sos = butter(order, cutoff, btype='lowpass', analog=False, fs=fs, output='sos')
     y = sosfilt(sos, data, axis=axis, zi=zi)
     return y
 
@@ -69,9 +65,7 @@ def butter_highpass_filter_back_to_back(data, cutoff, fs, order, axis=-1, padtyp
         Filtered Data
     """
     warnings.warn("This function is depracated. Use `butter_filter` instead.", DeprecationWarning)
-    nyquist_freq = 0.5 * fs
-    normal_cutoff = cutoff / nyquist_freq
-    sos = butter(order, normal_cutoff, btype='highpass', analog=False, fs=fs, output='sos')
+    sos = butter(order, cutoff, btype='highpass', analog=False, fs=fs, output='sos')
     y = sosfiltfilt(sos, data, axis=axis, padtype=padtype, padlen=padlen)
     return y
 
@@ -93,9 +87,7 @@ def butter_highpass_filter_forward(data, cutoff, fs, order, axis=-1, zi=None):
         Filtered Data
     """
     warnings.warn("This function is depracated. Use `butter_filter` instead.", DeprecationWarning)
-    nyquist_freq = 0.5 * fs
-    normal_cutoff = cutoff / nyquist_freq
-    sos = butter(order, normal_cutoff, btype='highpass', analog=False, fs=fs, output='sos')
+    sos = butter(order, cutoff, btype='highpass', analog=False, fs=fs, output='sos')
     y = sosfilt(sos, data, axis=axis, zi=zi)
     return y
 
@@ -126,12 +118,7 @@ def butter_filter(data, freqs, fs, order, btype='lowpass', back_to_back=False, a
         - Filtered Data, if it were a forward filter and `zi` were not provided.
         - (Filtered Data, Final Conditions `zf`), if it were a forward filter and `zi` were provided.
     """
-    nyquist_freq = 0.5 * fs
-    if isinstance(freqs, (list, tuple, np.ndarray)):
-        normal_freqs = [f / nyquist_freq for f in freqs]
-    else:
-        normal_freqs = freqs / nyquist_freq
-    sos = butter(order, normal_freqs, btype=btype, analog=False, fs=fs, output='sos')
+    sos = butter(order, freqs, btype=btype, analog=False, fs=fs, output='sos')
     if back_to_back:
         y = sosfiltfilt(sos, data, axis=axis, **filt_kwargs)
     else:
