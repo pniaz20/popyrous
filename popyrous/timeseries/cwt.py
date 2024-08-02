@@ -7,7 +7,7 @@ import time
 
 def cwt_for_batch(
     data, scales=np.arange(1, 33), mother_wavelet:str='mexh', use_abs:bool=False,
-    downsampling_ratio:float=None, remove_last_row_column:bool=False):
+    downsampling_ratio:float=None, remove_last_row_column:bool=False, sampling_freq:float=1.0, **kwargs):
     """Deploy Continuous Wavelet Transform (CWT) on a batch of data, then optionally downsample and clip it.  
     The dataset could be an `N x C x L` tensor, where
     
@@ -32,27 +32,32 @@ def cwt_for_batch(
         `use_abs` (bool, optional): Whether to use the absolute value of the data for CWT, or data itself. Defaults to False.
         `downsampling_ratio` (float, optional): Downsampling ratio (smaller than 1). Defaults to None.
         `remove_last_row_column` (bool, optional): Whether to remove the last row and column of the CWT coefficients. Defaults to False.
+        `sampling_freq` (float, optional): Sampling frequency of the data in Hz. Defaults to 1.0.
+        `**kwargs`: Additional arguments to be passed to the `pywt.cwt` function.
 
     ### Returns:
     
-        CWT coefficients: Dataset with shape `(..., H', L')`, or `(N, C, H', L')` in the preferred case.
+        `outvec`: CWT coefficients: Dataset with shape `(..., H', L')`, or `(N, C, H', L')` in the preferred case.
+        `freqs`: Array of frequencies corresponding to the scales used in the CWT (after downsampling and removal).
     """
-    invec = np.abs(data) if use_abs else data                             # N C L
-    outvec = cwt_for_tensor(invec, mother_wavelet, scales)                # H N C L
-    outvec = np.expand_dims(outvec, len(outvec.shape)-1)                  # H N C 1 L
-    outvec = outvec.swapaxes(0, len(outvec.shape)-2)                      # 1 N C H L
-    outvec = outvec.squeeze(0)                                            # N C H L
+    invec = np.abs(data) if use_abs else data                                               # N C L
+    outvec,freqs = cwt_for_tensor(invec, mother_wavelet, scales, sampling_freq, **kwargs)   # H N C L
+    outvec = np.expand_dims(outvec, len(outvec.shape)-1)                                    # H N C 1 L
+    outvec = outvec.swapaxes(0, len(outvec.shape)-2)                                        # 1 N C H L
+    outvec = outvec.squeeze(0)                                                              # N C H L
     if downsampling_ratio:
         zoomlst = [1]*(len(outvec.shape)-2) + [downsampling_ratio]*2
-        outvec = zoom(outvec, zoomlst, order=0)                           # N C rH rL
+        outvec = zoom(outvec, zoomlst, order=0)                                             # N C rH rL
+        freqs = freqs[::int(1/downsampling_ratio)]                                          # rH
     if remove_last_row_column:
-        outvec = outvec[...,:-1,:-1]                                      # N C rH-1 rL-1
-    return outvec
+        outvec = outvec[...,:-1,:-1]                                                        # N C rH-1 rL-1
+        freqs = freqs[:-1]                                                                  # rH-1
+    return outvec, freqs
     
 
 
 
-def cwt_for_tensor(matrix, mother_wavelet='mexh', scales=np.arange(1, 33)):
+def cwt_for_tensor(matrix, mother_wavelet='mexh', scales=np.arange(1, 33), sampling_freq:float=1.0, **kwargs):
     """Calculate CWT of data matrix
     
     L: number of samples (sequence length)
@@ -62,12 +67,15 @@ def cwt_for_tensor(matrix, mother_wavelet='mexh', scales=np.arange(1, 33)):
         `matrix`: C x L matrix of data 
         `mother_wavelet` (str, optional): Mother wavelet. Defaults to 'mexh' for Mexican Hat Wavelet.
         `scales` (Numpy array, optional): Array of scales. Defaults to np.arange(1, 33).
+        `sampling_freq` (float, optional): Sampling frequency of the data in Hz. Defaults to 1.0.
+        `**kwargs`: Additional arguments to be passed to the `pywt.cwt` function.
 
     ### Returns:
         coef: H x C x L matrix of CWT coefficients, where H is the height of the image generated, and L is the width.
+        freqs: Array of frequencies corresponding to the scales used in the CWT.
     """
-    coef, _ = pywt.cwt(matrix, scales=scales, wavelet=mother_wavelet)
-    return coef
+    sampling_period = 1.0 / sampling_freq
+    return pywt.cwt(matrix, scales=scales, wavelet=mother_wavelet, sampling_period=sampling_period, **kwargs)
 
 
 
@@ -107,7 +115,7 @@ def test_cwt_for_tensor():
     print("Testing cwt_for_tensor()...")
     L = 512
     C = 2
-    H = 32
+    H = 256
     t = np.arange(L)
     x1 = np.sin(2 * np.pi * 32 * t / L)
     x2 = np.sin(2 * np.pi * 64 * t / L)
@@ -117,9 +125,13 @@ def test_cwt_for_tensor():
     print("H: ", H)
     print("Shape of t: ", t.shape)
     print("Shape of x: ", x.shape)
-    coeff = cwt_for_tensor(x)
+    coeff, freqs = cwt_for_tensor(x, scales=np.arange(1, H+1))
     print("Shape of coeff: ", coeff.shape)
+    print("Shape of freqs: ", freqs.shape)
+    print("Frequencies: ")
+    print(freqs)
     show_wavelet(coeff)
+    print("Done.")
 
 
 
@@ -132,14 +144,21 @@ def test_cwt_for_batch():
     H = 32
     dataset = np.random.rand(N, C, L)
     print("Shape of dataset: ", dataset.shape)
-    new_dataset = cwt_for_batch(dataset)
+    new_dataset, freqs = cwt_for_batch(dataset)
     print("Shape of new_dataset : ", new_dataset.shape)
+    print("Shape of freqs : ", freqs.shape)
+    print("Frequencies: ")
+    print(freqs)
     print("Trying with preprocessing ...")
-    new_dataset = cwt_for_batch(dataset, downsampling_ratio=0.25, remove_last_row_column=True)
+    new_dataset, freqs = cwt_for_batch(dataset, downsampling_ratio=0.25, remove_last_row_column=True, num_scales=np.arange(1, 129))
     print("Shape of new_dataset : ", new_dataset.shape)
+    print("Shape of freqs : ", freqs.shape)
+    print("Frequencies: ")
+    print(freqs)
+    print("Done.")
     
 
-def test_cwt_for_batch_with_timing(dur_sec=60, fs_Hz=1000, seqlen_sec=1.0, nchan=4, num_scales=32): 
+def test_cwt_for_batch_with_timing(dur_sec=10, fs_Hz=1000, seqlen_sec=1.0, nchan=2, num_scales=128): 
     # --> 280 sec in both cases with these defaults
     # It is the cwt itself that is computationally expensive, not downsampling or clipping.
     print("---------------------------------------")
@@ -153,22 +172,31 @@ def test_cwt_for_batch_with_timing(dur_sec=60, fs_Hz=1000, seqlen_sec=1.0, nchan
     print("Shape of input array: ", data.shape)
     print("Trying without any postprocessing ...")
     t1 = time.time()
-    coefs = cwt_for_batch(data, scales=scales)
+    coefs, freqs = cwt_for_batch(data, scales=scales, sampling_freq=fs_Hz)
     t2 = time.time()
     print("Elapsed time: ", t2-t1)
+    print("Shape of output array: ", coefs.shape)
+    print("Shape of freqs: ", freqs.shape)
+    print("Frequencies: ")
+    print(freqs)
     print("Trying with postprocessing ...")
     t1 = time.time()
-    coefs = cwt_for_batch(data, scales=scales, downsampling_ratio=0.25, remove_last_row_column=True)
+    coefs, freqs = cwt_for_batch(data, scales=scales, downsampling_ratio=0.25, remove_last_row_column=True, sampling_freq=fs_Hz)
     t2 = time.time()
     print("Elapsed time: ", t2-t1)
+    print("Shape of output array: ", coefs.shape)
+    print("Shape of freqs: ", freqs.shape)
+    print("Frequencies: ")
+    print(freqs)
+    print("Done.")
 
     
-    
+
 
 
 
 if __name__ == '__main__':
-    # test_cwt_for_tensor()
+    test_cwt_for_tensor()
     # test_cwt_for_batch()
     # test_cwt_for_batch_with_timing()
     pass

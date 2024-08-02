@@ -669,172 +669,168 @@ def generate_cell_array(dataframe, hparams,
 
     ### Args:
     
-        - `dataframe` (`pd.DataFrame`): DataFrame holding all the raw timeseries data, all subjects and conditions.
-        - `hparams` (dict): Dictionary to be used for extracting useful hyperparameters for the sliding window.
-        
-            This dicitonary will be sent to, and returned by, the `make_ann_dataset` or `make_seq2dense_dataset`
-            function, depending on whether or not squeezed or unsqueezed data is desired (see below).
-            This dictionary should contain the following keys:
-             - `in_seq_len_sec` (float): Length of the input sequence, in seconds.
-             - `out_seq_len_sec` (float): Length of the output sequence, in seconds.
-             - `data_downsampling` (int): Downsampling factor, i.e. one out of how many samples will be extracted.
-             - `sequence_downsampling` (int): Downsampling factor for the sequences, AFTER data downsampling.
-             - `data_sampling_rate_Hz` (float): Sampling rate of the data, in Hz.
-             - `validation_data` (float|tuple, optional): Portion of the data to be used for validation while training.
-                These datapoints will be selected randomly out of all the data. The data will be shuffled.
-                If this is a tuple, it should hold the portion, followed by which set it comes from, 
-                'trainset' or 'testset'. If it is a float, it will by default come from test set, if any.
-                If there is no test set applicable according to the settings, training set will be used.
-                If this is a tuple, it should be e.g. [0.2, 'trainset'] or [0.1,'testset'].
+    - `dataframe` (`pd.DataFrame`): DataFrame holding all the raw timeseries data, all subjects and conditions.
+    - `hparams` (dict): Dictionary to be used for extracting useful hyperparameters for the sliding window. This dicitonary will be sent to, 
+    and returned by, the `make_ann_dataset` or `make_seq2dense_dataset` function, depending on whether or not squeezed or unsqueezed data is 
+    desired (see below). This dictionary should contain the following keys:
+        - `in_seq_len_sec` (float): Length of the input sequence, in seconds.
+        - `out_seq_len_sec` (float): Length of the output sequence, in seconds.
+        - `data_downsampling` (int): Downsampling factor, i.e. one out of how many samples will be extracted.
+        - `sequence_downsampling` (int): Downsampling factor for the sequences, AFTER data downsampling.
+        - `data_sampling_rate_Hz` (float): Sampling rate of the data, in Hz.
+        - `validation_data` (float|tuple, optional): Portion of the data to be used for validation while training.
+        These datapoints will be selected randomly out of all the data. The data will be shuffled.
+        If this is a tuple, it should hold the portion, followed by which set it comes from, 
+        'trainset' or 'testset'. If it is a float, it will by default come from test set, if any.
+        If there is no test set applicable according to the settings, training set will be used.
+        If this is a tuple, it should be e.g. [0.2, 'trainset'] or [0.1,'testset'].
+    - `subjects_column` (str, optional): Column of the DataFrame holding subject numbers, if any. Defaults to None.
+    - `conditions_column` (str, optional): Column of the DataFrame holding condition numbers. Defaults to None.
+    - `trials_column` (str, optional): Column of the DataFrame holding trial numbers, if any. Defaults to None.
+        **NOTE**: If any of the above arguments are None, it is assumed only one subject/condition/trial is
+        involved in the timeseries experiments.
+    - `input_cols` (list, optional): List of columns of input data. Defaults to None, meaning all data is input.
+    - `output_cols` (list, optional): List of columns of output data. Defaults to None, meaning there is no output.
+    - `input_preprocessor` (function, optional): Function to perform before processing. Defaults to None.
+        **Note** This function should take in a DataFrame extracted from a specific subject/condition/trial,
+        and return a numpy array containing preprocessed data.
+    - `input_postprocessor` (function, optional): Function to perform after processing. Defaults to None.
+        **Note** This function should take a numpy array which represents the processed tabulated data after 
+        sliding window etc., and return a new numpy array with the same number of rows, containing the 
+        postprocessed data.
+        **Note** Scaling of inputs and outputs can be done automatically (see below) and do not need to be
+        manually employed as pre/postprocessing steps.
+    - `output_preprocessor` (function, optional): Same as the one for inputs. Defaults to None.
+    - `output_postprocessor` (function, optional): Same as the one for inputs. Defaults to None.
+    - `specific_subjects` (list, optional): List of 1-indexed subject numbers to use. Defaults to None.
+    - `specific_conditions` (list, optional): List of 1-indexed condition numbers to use. Defaults to None.
+        **Note** If any of the above arguments are given, the cell array will be complete, but the corresponding
+        elements of the cell arrays to the subjects/conditions not included in the list will be empty lists, [].
+        These data will also not be used for generating training or testing data for a model. 
+    - `num_subjects_for_testing` (int, optional): Self-explanatory. Defaults to None. If provided, subjects will
+        be chosen randomly from all subjects.
+    - `subjects_for_testing` (list, optional): Self-explanatory. Defaults to None. It is 1-indexed.
+        **Note** If `num_subjects_for_testing` is given but `subjects_for_testing` is not given, the subjects
+        for testing will be chosen randomly from all subjects.
+    - `conditions_for_testing` (list, optional): List of 1-indexed condition numbers used for testing.
+        Defaults to None.
+    - `trials_for_testing` (list, optional): List of 1-indexed trial numbers used for testing 
+        out of every condition. Defaults to None.
+    - `use_filtered_data` (bool, optional): Whether to low-pass filter data before processing. Defaults to False.
+        **Note** If given, a digital Butterworth filter will be deployed, only forward-facing, that is,
+        using `filt`, NOT `filtfilt`.
+    - `lpcutoff` (float, optional): Lowpass filter cutoff frequency, Hz. Defaults to None.
+    - `lporder` (int, optional): Lowpass filter order. Defaults to None.
+    - `lpsamplfreq` (float, optional): Lowpass filter sampling frequency, Hz. Defaults to None.
+    - `data_squeezed` (bool, optional): Whether the input data should be squeezed. Defaults to True.
+        Squeezed data are 2D, as in (num_data, sequence_length*num_features),
+        but unsqueezed data are 3D, as in (num_data, sequence_length, num_features).
+        Squeezed data can, e.g., be used as inputs for MLP models, while unsqueezed data can be used as inputs for
+        RNN/CNN models.
+    - `return_data_arrays_orig` (bool, optional): Whether to return original data arrays. Defaults to True.
+    - `return_data_arrays_processed` (bool, optional): Whether to return preprocecssed data arrays. Default True.
+    - `return_train_val_test_data`(bool, optional): Whether to return model training-related arrays and data. 
+        Defaults to True.
+        If True, the function will return processed, scaled and shuffled numpy arrays ready to be plugged into
+        a learning model. They will include training, validation and testsets, if applicable.
+        If False, the function will not return such data. This can come in handy if no training or machine learning
+        is involved in what you are trying to do, and you are trying to save memory.
+    - `return_train_val_test_arrays` (bool, optional): Whether to return per-trial individual model 
+    training-related arrays. Defaults to True.
+    If True, the function will return processed, scaled and shuffled numpy arrays ready to be plugged into
+    the machine learning model. However, these arrays will be wrapped in a cell array, where each element of the 
+    array corresponds to machine-learning-ready training, validation & testing data of one individual trial of the
+    experimentation.
+    - `verbosity` (int, optional): Verbosity level. Defaults to 0. If 1, only the shape of the resulting databases
+        are printed, as well as some fundamental information about the database. If 2, then basically everything is
+        printed, along all the steps of the way.
             
              
-            ** Description of data downsampling and sequence downsampling **
-            
-            The data downsampling rate downsamples the data when extracting it, so dataset size (number of samples) is divided by the downsampling rate.
-            After the time series is downsampled by the `data_downsampling`, sequences are extracted from it using a sliding window. After the sequences are extracted, they can 
-            still have too many time steps in them especially if the sampling rate was high to begin with. Then, the `sequence_downsampling` is applied, and all the extracted 
-            sequences are downsampled. This does not change the dataset size; it only decreases the number of time steps in each sequence.
-            
-            Data downsampling is typically used when the sampling frequency is too high and there are too many time series or the series are too long. Sequence downsampling is 
-            typically used when the sequence length (in units of time) needs to remain large enough to extract meaningful trends and information, but because the sampling 
-            frequency is too high the sequences end up having too many time steps. Sequence downsampling makes sure the time-length of the sequences remains constant while the 
-            number of time steps in each sequence is reduced.
-            
-            For example, let us assume 100 trials of a time-series experiment were performed, each lasting 100 seconds, with a sampling frequency of 1000 Hz. This means there are 
-            a total of 100 K timesteps in each trial, amounting to 10 M time steps (training samples) in total. Let us assume that the sequences that you extract with a sliding 
-            window need to be at least 2 seconds long to be able to extract meaningful information from them. There are two problems here. Firstly, there are too many data points 
-            (10 M) in the training set. Secondly, the sequences will have too many time steps in them (2000) which will make training difficult and memory-intensive. To solve this 
-            problem, we apply a `data_downsampling` rate of 4, reducing the effective sampling frequency to 250 Hz. This reduces the number of data points to 2.5 M.
-            Also, this will mean that our 2-second sequences will have 500 time steps in them. Right now, 2.5 M dataset size is good, and we do not want to reduce it further. 
-            However, especially if the data is smooth enough, 500 time steps in a sequence may be still too high. If we increase the `data_downsampling` rate, dataset size will 
-            also decrease, and we do not want that. Therefore, we simply apply a `sequence_downsampling` rate of 10, which will reduce the number of time steps in each sequence to
-            50, without touching the dataset size, affecting the rate of extracting sequences from the time series, or affecting the time length of the extracted sequences. 
-            Assuming that the data is smooth and 50 timesteps forming a 2-second sequence are enough to extract meaningful information from the data, this is a good solution. 
-            We will eventually have 2.5 M sequences with 50 time steps in each.
-            
-            Therefore, if the size and/or sampling frequency of the data is too high, data downsampling is preferred.
-            However, if the dataset size is fine, but due to the long sequence length or high sampling rate, sequences
-            hold too many data points in them and matrices end up being too large for the memory, sequence downsampling 
-            is preferred. Sequence downsampling will not touch the size/sampling frequency of the data itself, 
-            nor will it touch the true time length of the sequences. It will only make the sequences downsampled 
-            and more coarse. Therefore, number of data points in the dataset will remain constant, as will the true 
-            time length of the sequences. However, the number of time steps in the sequences will decrease.
-            
-            
-            
-            
-            **IMPORTANT** 
-            Depending on whether squeezed or unsqueezed data is required (see below), the passed hyperparameter 
-            dictionary will be updated as follows:
-            
-             - If `data_squeezed` is True: The `input_size` and `output_size` hyperparameters will be updated.
-            This is useful when MLP models will be deployed,
-            where inputs are 2D tables.
-            
-             - If `data_squeezed` is False: The `in_seq_len` and `out_seq_len` hyperparameters will be updated.
-            This is useful when generally RNN-based or CNN-based models
-            will be deployed, where inputs are 3D. In this case, the `out_features` key will also be multiplied by the `out_seq_len` to get the total number of output features.
-            This is because regardless of input shapes, outputs in this function are always assumed to be squeezed. `out_features` is the final output layer width.
-            
-            
-        - `subjects_column` (str, optional): Column of the DataFrame holding subject numbers, if any. Defaults to None.
-        - `conditions_column` (str, optional): Column of the DataFrame holding condition numbers. Defaults to None.
-        - `trials_column` (str, optional): Column of the DataFrame holding trial numbers, if any. Defaults to None.
-            **NOTE**: If any of the above arguments are None, it is assumed only one subject/condition/trial is
-            involved in the timeseries experiments.
-        - `input_cols` (list, optional): List of columns of input data. Defaults to None, meaning all data is input.
-        - `output_cols` (list, optional): List of columns of output data. Defaults to None, meaning there is no output.
-        - `input_preprocessor` (function, optional): Function to perform before processing. Defaults to None.
-            **Note** This function should take in a DataFrame extracted from a specific subject/condition/trial,
-            and return a numpy array containing preprocessed data.
-        - `input_postprocessor` (function, optional): Function to perform after processing. Defaults to None.
-            **Note** This function should take a numpy array which represents the processed tabulated data after 
-            sliding window etc., and return a new numpy array with the same number of rows, containing the 
-            postprocessed data.
-            **Note** Scaling of inputs and outputs can be done automatically (see below) and do not need to be
-            manually employed as pre/postprocessing steps.
-        - `output_preprocessor` (function, optional): Same as the one for inputs. Defaults to None.
-        - `output_postprocessor` (function, optional): Same as the one for inputs. Defaults to None.
-        - `specific_subjects` (list, optional): List of 1-indexed subject numbers to use. Defaults to None.
-        - `specific_conditions` (list, optional): List of 1-indexed condition numbers to use. Defaults to None.
-            **Note** If any of the above arguments are given, the cell array will be complete, but the corresponding
-            elements of the cell arrays to the subjects/conditions not included in the list will be empty lists, [].
-            These data will also not be used for generating training or testing data for a model. 
-        - `num_subjects_for_testing` (int, optional): Self-explanatory. Defaults to None. If provided, subjects will
-            be chosen randomly from all subjects.
-        - `subjects_for_testing` (list, optional): Self-explanatory. Defaults to None. It is 1-indexed.
-            **Note** If `num_subjects_for_testing` is given but `subjects_for_testing` is not given, the subjects
-            for testing will be chosen randomly from all subjects.
-        - `conditions_for_testing` (list, optional): List of 1-indexed condition numbers used for testing.
-            Defaults to None.
-        - `trials_for_testing` (list, optional): List of 1-indexed trial numbers used for testing 
-            out of every condition. Defaults to None.
-        - `use_filtered_data` (bool, optional): Whether to low-pass filter data before processing. Defaults to False.
-            **Note** If given, a digital Butterworth filter will be deployed, only forward-facing, that is,
-            using `filt`, NOT `filtfilt`.
-        - `lpcutoff` (float, optional): Lowpass filter cutoff frequency, Hz. Defaults to None.
-        - `lporder` (int, optional): Lowpass filter order. Defaults to None.
-        - `lpsamplfreq` (float, optional): Lowpass filter sampling frequency, Hz. Defaults to None.
-        - `data_squeezed` (bool, optional): Whether the input data should be squeezed. Defaults to True.
-            Squeezed data are 2D, as in (num_data, sequence_length*num_features),
-            but unsqueezed data are 3D, as in (num_data, sequence_length, num_features).
-            Squeezed data can, e.g., be used as inputs for MLP models, while unsqueezed data can be used as inputs for
-            RNN/CNN models.
-        - `return_data_arrays_orig` (bool, optional): Whether to return original data arrays. Defaults to True.
-        - `return_data_arrays_processed` (bool, optional): Whether to return preprocecssed data arrays. Default True.
-        - `return_train_val_test_data`(bool, optional): Whether to return model training-related arrays and data. 
-            Defaults to True.
-            If True, the function will return processed, scaled and shuffled numpy arrays ready to be plugged into
-            a learning model. They will include training, validation and testsets, if applicable.
-            If False, the function will not return such data. This can come in handy if no training or machine learning
-            is involved in what you are trying to do, and you are trying to save memory.
-        - `return_train_val_test_arrays` (bool, optional): Whether to return per-trial individual model 
-        training-related arrays. Defaults to True.
-        If True, the function will return processed, scaled and shuffled numpy arrays ready to be plugged into
-        the machine learning model. However, these arrays will be wrapped in a cell array, where each element of the 
-        array corresponds to machine-learning-ready training, validation & testing data of one individual trial of the
-        experimentation.
-        - `verbosity` (int, optional): Verbosity level. Defaults to 0. If 1, only the shape of the resulting databases
-            are printed, as well as some fundamental information about the database. If 2, then basically everything is
-            printed, along all the steps of the way.
+    **Description of data downsampling and sequence downsampling**
+    
+    The data downsampling rate downsamples the data when extracting it, so dataset size (number of samples) is divided by the downsampling rate.
+    After the time series is downsampled by the `data_downsampling`, sequences are extracted from it using a sliding window. After the sequences are extracted, they can 
+    still have too many time steps in them especially if the sampling rate was high to begin with. Then, the `sequence_downsampling` is applied, and all the extracted 
+    sequences are downsampled. This does not change the dataset size; it only decreases the number of time steps in each sequence.
+    
+    Data downsampling is typically used when the sampling frequency is too high and there are too many time series or the series are too long. Sequence downsampling is 
+    typically used when the sequence length (in units of time) needs to remain large enough to extract meaningful trends and information, but because the sampling 
+    frequency is too high the sequences end up having too many time steps. Sequence downsampling makes sure the time-length of the sequences remains constant while the 
+    number of time steps in each sequence is reduced.
+    
+    For example, let us assume 100 trials of a time-series experiment were performed, each lasting 100 seconds, with a sampling frequency of 1000 Hz. This means there are 
+    a total of 100 K timesteps in each trial, amounting to 10 M time steps (training samples) in total. Let us assume that the sequences that you extract with a sliding 
+    window need to be at least 2 seconds long to be able to extract meaningful information from them. There are two problems here. Firstly, there are too many data points 
+    (10 M) in the training set. Secondly, the sequences will have too many time steps in them (2000) which will make training difficult and memory-intensive. To solve this 
+    problem, we apply a `data_downsampling` rate of 4, reducing the effective sampling frequency to 250 Hz. This reduces the number of data points to 2.5 M.
+    Also, this will mean that our 2-second sequences will have 500 time steps in them. Right now, 2.5 M dataset size is good, and we do not want to reduce it further. 
+    However, especially if the data is smooth enough, 500 time steps in a sequence may be still too high. If we increase the `data_downsampling` rate, dataset size will 
+    also decrease, and we do not want that. Therefore, we simply apply a `sequence_downsampling` rate of 10, which will reduce the number of time steps in each sequence to
+    50, without touching the dataset size, affecting the rate of extracting sequences from the time series, or affecting the time length of the extracted sequences. 
+    Assuming that the data is smooth and 50 timesteps forming a 2-second sequence are enough to extract meaningful information from the data, this is a good solution. 
+    We will eventually have 2.5 M sequences with 50 time steps in each.
+    
+    Therefore, if the size and/or sampling frequency of the data is too high, data downsampling is preferred.
+    However, if the dataset size is fine, but due to the long sequence length or high sampling rate, sequences
+    hold too many data points in them and matrices end up being too large for the memory, sequence downsampling 
+    is preferred. Sequence downsampling will not touch the size/sampling frequency of the data itself, 
+    nor will it touch the true time length of the sequences. It will only make the sequences downsampled 
+    and more coarse. Therefore, number of data points in the dataset will remain constant, as will the true 
+    time length of the sequences. However, the number of time steps in the sequences will decrease.
+    
+    
+    
+    
+    **IMPORTANT**
+     
+    Depending on whether squeezed or unsqueezed data is required (see below), the passed hyperparameter 
+    dictionary will be updated as follows:
+    
+    - If `data_squeezed` is True: The `input_size` and `output_size` hyperparameters will be updated.
+    This is useful when MLP models will be deployed,
+    where inputs are 2D tables.
+    - If `data_squeezed` is False: The `in_seq_len` and `out_seq_len` hyperparameters will be updated.
+    This is useful when generally RNN-based or CNN-based models
+    will be deployed, where inputs are 3D. In this case, the `out_features` key will also be multiplied by the `out_seq_len` to get the total number of output features.
+    This is because regardless of input shapes, outputs in this function are always assumed to be squeezed. `out_features` is the final output layer width.
+        
+        
+    
 
     ### Returns:
     
-        This function returns a dictionary holding some of the following, according to the arguments.
-        - `is_test` (numpy nested cell arrays): Whether every trial is for testing data or not.
-        - `x_train`,`x_val`,`x_test`,`y_train`,`y_val`,`y_test` (numpy arrays): Training, validation and testing
-            arrays of input and output data, respectively, processed, scaled and processed with sliding window, fully
-            ready to be fed to a learning algorithm. The data is also shuffled.
-            If `hparams["validatoin_data"]` does not exist, `x_val` and `y_val` will be None, or empty.
-            If testing-related parameters like `num_subjects_for_testing` or `subjects_for_testing` are not given,
-            The `x_test` and `y_test` will be None, or empty.
-            If `return_train_val_test_data` is False, `x_train`, `x_val`, `x_test`, `y_train`, `y_val`, `y_test` will
-            not be included in the output dictionary.
-        - `x_arrays` and `y_arrays` (numpy nested cell arrays): These include the same data as `x_train`, `x_val`, etc.,
-            only they are separated for subjects, conditions and trials. If `return_train_val_test_arrays` is False,
-            these will be empty lists, [].
-            `x_arrays[subj,cond,trial]` holds the corresponding data of one timeseries experiment, for instance.
-        - `data_arrays_orig` and `data_arrays_processed` hold the data itself, nested and rearranged,
-            but not passed through the sliding window. The `orig` one holds the raw data before preprocessing function,
-            if any, and the `processed` one contains preprocessed and scaled data. These will be empty or None, if 
-            `return_data_arrays_orig` or `return_data_arrays_processed` are False, respectively.
-            
-            **Note** One of the preprocessing steps that takes place by default, is downsampling. Therefore, the `orig`
-            data will NOT even be downsampled.
-            
-            `data_arrays_orig[subj,cond,trial]` is a dictionary holding `input` and `output` keys, whose values are the
-            original or processed timeseries data for the corresponding timeseries experiment, containing the
-            inputs and outputs, respectively.
-            
-        - `hparams` (dictionary): Dictionary of hyperparameters used in this function, modified and updated.
-            **Note** Returning this object is not actually necessary. The `hparam` parameter is already modified and 
-            updated, because the function modifies the reference to the hparams object, so there is no real need
-            for returning it, unless for back-up or storage reasons.
-        
-        - `subjects_test` (list): List of subject numbers used for testing.
-        - `conditions_test` (list): List of condition numbers used for testing.
-        - `trials_test` (list): List of trial numbers used for testing.
-        - `num_subjects`, `num_conditions`, `num_trials` (int): Number of subjects, conditions and trials, respectively.
+    This function returns a dictionary holding some of the following, according to the arguments.
+    
+    - `is_test` (numpy nested cell arrays): Whether every trial is for testing data or not.
+    - `x_train`,`x_val`,`x_test`,`y_train`,`y_val`,`y_test` (numpy arrays): Training, validation and testing
+        arrays of input and output data, respectively, processed, scaled and processed with sliding window, fully
+        ready to be fed to a learning algorithm. The data is also shuffled.
+        If `hparams["validatoin_data"]` does not exist, `x_val` and `y_val` will be None, or empty.
+        If testing-related parameters like `num_subjects_for_testing` or `subjects_for_testing` are not given,
+        The `x_test` and `y_test` will be None, or empty.
+        If `return_train_val_test_data` is False, `x_train`, `x_val`, `x_test`, `y_train`, `y_val`, `y_test` will
+        not be included in the output dictionary.
+    - `x_arrays` and `y_arrays` (numpy nested cell arrays): These include the same data as `x_train`, `x_val`, etc.,
+        only they are separated for subjects, conditions and trials. If `return_train_val_test_arrays` is False,
+        these will be empty lists, [].
+        `x_arrays[subj,cond,trial]` holds the corresponding data of one timeseries experiment, for instance.
+    - `data_arrays_orig` and `data_arrays_processed` hold the data itself, nested and rearranged,
+        but not passed through the sliding window. The `orig` one holds the raw data before preprocessing function,
+        if any, and the `processed` one contains preprocessed and scaled data. These will be empty or None, if 
+        `return_data_arrays_orig` or `return_data_arrays_processed` are False, respectively.
+        **Note** One of the preprocessing steps that takes place by default, is downsampling. Therefore, the `orig`
+        data will NOT even be downsampled.
+        `data_arrays_orig[subj,cond,trial]` is a dictionary holding `input` and `output` keys, whose values are the
+        original or processed timeseries data for the corresponding timeseries experiment, containing the
+        inputs and outputs, respectively.
+    - `hparams` (dictionary): Dictionary of hyperparameters used in this function, modified and updated.
+        **Note** Returning this object is not actually necessary. The `hparam` parameter is already modified and 
+        updated, because the function modifies the reference to the hparams object, so there is no real need
+        for returning it, unless for back-up or storage reasons.
+    - `subjects_test` (list): List of subject numbers used for testing.
+    - `conditions_test` (list): List of condition numbers used for testing.
+    - `trials_test` (list): List of trial numbers used for testing.
+    - `num_subjects`, `num_conditions`, `num_trials` (int): Number of subjects, conditions and trials, respectively.
         
         
     ### Important Implementation Notes:
